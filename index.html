@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Encuentra el precio verdadero de productos y servicios con transparencia total">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Precio Verdadero">
+    
+    <title>Precio Verdadero - Tu Precio Justo</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icon-192x192.svg">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/icon-192x192.svg">
+    
+    <!-- Tailwind CSS CDN (solo para desarrollo) -->
+    <!-- Para producción, instala Tailwind CSS como PostCSS plugin -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Suprimir advertencia de producción en desarrollo
+        if (window.tailwind) {
+            console.log('Tailwind CSS cargado desde CDN (solo para desarrollo)');
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chat-container {
+            transition: all 0.3s ease;
+        }
+        .message {
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .typing-indicator {
+            display: inline-block;
+        }
+        .typing-indicator span {
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        /* Mejoras de responsividad */
+        @media (max-width: 640px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            /* Chat en móvil ocupa toda la pantalla */
+            #chatAssistant {
+                border-radius: 1rem 1rem 0 0 !important;
+            }
+            
+            /* Mejorar espaciado en móvil */
+            section {
+                padding-top: 2rem;
+                padding-bottom: 2rem;
+            }
+        }
+        
+        /* Prevenir zoom en inputs en iOS */
+        @media screen and (max-width: 768px) {
+            input[type="text"],
+            input[type="email"],
+            textarea {
+                font-size: 16px !important;
+            }
+        }
+        
+        /* Mejorar scroll en móvil */
+        #chatMessages {
+            -webkit-overflow-scrolling: touch;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-balance-scale text-blue-600 text-xl sm:text-2xl"></i>
+                <h1 class="text-lg sm:text-2xl font-bold text-gray-800">Precio Verdadero</h1>
+            </div>
+            <button id="chatToggle" class="bg-blue-600 text-white px-3 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition flex items-center space-x-1 sm:space-x-2 text-sm sm:text-base">
+                <i class="fas fa-robot"></i>
+                <span class="hidden sm:inline">Asistente Virtual</span>
+                <span class="sm:hidden">Chat</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-12 sm:py-16 md:py-20">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 px-2">Encuentra el Precio Verdadero</h2>
+            <p class="text-lg sm:text-xl mb-6 sm:mb-8 px-2">Transparencia y confianza en cada compra</p>
+            <button class="bg-white text-blue-600 px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold hover:bg-gray-100 transition text-sm sm:text-base">
+                Comenzar Ahora
+            </button>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="py-12 sm:py-16 container mx-auto px-4">
+        <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-800">Nuestras Características</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <i class="fas fa-shield-alt text-blue-600 text-4xl mb-4"></i>
+                <h4 class="text-xl font-semibold mb-2">Transparencia Total</h4>
+                <p class="text-gray-600">Conoce el precio real de cada producto sin sorpresas</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <i class="fas fa-chart-line text-blue-600 text-4xl mb-4"></i>
+                <h4 class="text-xl font-semibold mb-2">Comparación Inteligente</h4>
+                <p class="text-gray-600">Compara precios de múltiples proveedores en tiempo real</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md text-center">
+                <i class="fas fa-headset text-blue-600 text-4xl mb-4"></i>
+                <h4 class="text-xl font-semibold mb-2">Soporte 24/7</h4>
+                <p class="text-gray-600">Nuestro asistente virtual está siempre disponible</p>
+
+                <!-- Reemplaza el número de ejemplo por tu número en formato E.164 (ej: +54911xxxxxxx) -->
+                <div class="mt-4 flex items-center justify-center">
+                    <a id="whatsappLink" class="inline-block bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition text-sm" href="#" target="_blank" rel="noopener">Contactar por WhatsApp</a>
+                </div>
+
+                <p class="text-xs text-gray-400 mt-2">Usa el enlace de WhatsApp para contactarnos rápidamente.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comments Section -->
+    <section class="py-12 sm:py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h3 class="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12 text-gray-800 px-2">Comentarios de Nuestros Usuarios</h3>
+            
+            <!-- Comment Form -->
+            <div class="max-w-2xl mx-auto mb-6 sm:mb-8">
+                <div class="bg-gray-50 p-4 sm:p-6 rounded-lg shadow-md">
+                    <h4 class="text-lg sm:text-xl font-semibold mb-4">Deja tu comentario</h4>
+                    <form id="commentForm" class="space-y-4">
+                        <div>
+                            <input type="text" id="commentName" placeholder="Tu nombre" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                        </div>
+                        <div>
+                            <input type="email" id="commentEmail" placeholder="Tu email" 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+                        </div>
+                        <div>
+                            <textarea id="commentText" rows="4" placeholder="Escribe tu comentario aquí..." 
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required></textarea>
+                        </div>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-paper-plane mr-2"></i>Enviar Comentario
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Comments List -->
+            <div id="commentsContainer" class="max-w-2xl mx-auto space-y-4">
+                <!-- Los comentarios se cargarán aquí -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Precio Verdadero. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Chat Assistant -->
+    <div id="chatAssistant" class="fixed bottom-0 right-0 sm:bottom-4 sm:right-4 w-full sm:w-96 h-[100vh] sm:h-[600px] bg-white rounded-t-lg sm:rounded-lg shadow-2xl hidden flex-col chat-container z-50">
+        <div class="bg-blue-600 text-white p-3 sm:p-4 rounded-t-lg flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fas fa-robot"></i>
+                <h3 class="font-semibold text-sm sm:text-base">Asistente Virtual</h3>
+            </div>
+            <button id="closeChat" class="text-white hover:text-gray-200 p-1">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        
+        <div id="chatMessages" class="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-50">
+            <div class="message bg-blue-100 p-3 rounded-lg">
+                <p class="text-sm text-gray-800">¡Hola! Soy el asistente virtual de Precio Verdadero. ¿En qué puedo ayudarte hoy?</p>
+            </div>
+        </div>
+        
+        <div class="p-3 sm:p-4 border-t border-gray-200 bg-white">
+            <form id="chatForm" class="flex space-x-2">
+                <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." 
+                    class="flex-1 px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+                <button type="submit" class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registrado:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Error al registrar Service Worker:', error);
+                    });
+            });
+        }
+
+        // Detectar si la app se puede instalar
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Mostrar botón de instalación si es necesario
+            showInstallButton();
+        });
+
+        function showInstallButton() {
+            // Puedes agregar un botón de instalación aquí si lo deseas
+            console.log('📱 App lista para instalar');
+        }
+
+        // Detectar si la app está instalada
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('📱 App ejecutándose en modo standalone (instalada)');
+        }
+
+        // === Soporte 24/7: configuración del número y handlers ===
+        // Reemplaza este número por el número real en formato E.164
+        const SUPPORT_PHONE = '+59178056020';
+
+        // Inicializar el enlace de WhatsApp (wa.me)
+        const whatsappLink = document.getElementById('whatsappLink');
+        if (whatsappLink) {
+            const encoded = encodeURIComponent('Necesito ayuda');
+            // wa.me expects number without '+' and without spaces
+            const plainNumber = SUPPORT_PHONE.replace(/[^\d]/g, '');
+            whatsappLink.href = `https://wa.me/${plainNumber}?text=${encoded}`;
+        }
+
+        // (Botón de envío desde servidor eliminado intencionalmente)
+    </script>
+</body>
+</html>
+

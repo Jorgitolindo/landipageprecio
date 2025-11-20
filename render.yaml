@@ -1,0 +1,16 @@
+# Ejemplo de archivo de despliegue para Render (opcional)
+# NO incluyas claves secretas aquí; configura las variables de entorno en el dashboard de Render
+services:
+  - type: web
+    name: precio-verdadero
+    env: docker
+    plan: free # o starter, según tu cuenta
+    # Si quieres pasar env vars desde este archivo, usa 'envVars' pero evita incluir secretos en el repo
+    # envVars:
+    #   - key: NODE_ENV
+    #     value: production
+    #   - key: PORT
+    #     value: "3000"
+    # Puedes configurar el buildCommand y startCommand si es necesario
+    buildCommand: ""
+    startCommand: ""
