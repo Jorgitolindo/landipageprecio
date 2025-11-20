@@ -1,5 +1,5 @@
 const express = require('express');
-const mysql = require('mysql2/promise');
+const { Pool } = require('pg');
 const cors = require('cors');
 const fs = require('fs').promises;
 const path = require('path');
@@ -36,16 +36,16 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM || ''; // e.g. 'whatsapp:+1415XXXXXXX'
 
-// Configuración de MySQL
+// Configuración de PostgreSQL
 const dbConfig = {
-    host: process.env.DB_HOST || '127.0.0.1',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USERNAME || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_DATABASE || 'precios',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    host: process.env.DB_HOST || 'dpg-d4fd6n15pdvs73adlqdg-a.oregon-postgres.render.com',
+    port: Number(process.env.DB_PORT) || 5432,
+    user: process.env.DB_USERNAME || 'sw2precio',
+    password: process.env.DB_PASSWORD || 'C6zWxNSFIgit2ZzR0SFy0nmU5tC4POUK',
+    database: process.env.DB_DATABASE || 'sw2precio',
+    ssl: process.env.DB_SSL === 'disable' ? false : { rejectUnauthorized: false },
+    max: Number(process.env.DB_POOL_MAX) || 10,
+    idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT) || 30000
 };
 
 let pool;
@@ -53,17 +53,18 @@ let pool;
 // Inicializar pool de conexiones
 async function initializeDatabase() {
     try {
-        pool = mysql.createPool(dbConfig);
-        
+        pool = new Pool(dbConfig);
+
         // Verificar conexión
-        const connection = await pool.getConnection();
-        console.log('✅ Conexión a MySQL establecida correctamente');
-        connection.release();
+        const client = await pool.connect();
+        await client.query('SELECT NOW()');
+        console.log('✅ Conexión a PostgreSQL establecida correctamente');
+        client.release();
         
         // Crear tablas si no existen
         await createTables();
     } catch (error) {
-        console.error('❌ Error al conectar con MySQL:', error.message);
+        console.error('❌ Error al conectar con PostgreSQL:', error.message);
         process.exit(1);
     }
 }
@@ -74,37 +75,46 @@ async function createTables() {
         // Tabla de comentarios
         await pool.query(`
             CREATE TABLE IF NOT EXISTS comments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) NOT NULL,
                 text TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_created_at (created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            CREATE INDEX IF NOT EXISTS idx_comments_created_at
+            ON comments (created_at);
         `);
 
         // Tabla de conocimiento para la IA
         await pool.query(`
             CREATE TABLE IF NOT EXISTS ai_knowledge (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 title VARCHAR(255) NOT NULL,
                 content TEXT NOT NULL,
-                category ENUM('manual_usuario', 'manual_empresa', 'general') DEFAULT 'general',
+                category VARCHAR(20) NOT NULL DEFAULT 'general' CHECK (category IN ('manual_usuario', 'manual_empresa', 'general')),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_category (category)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            CREATE INDEX IF NOT EXISTS idx_ai_knowledge_category
+            ON ai_knowledge (category);
         `);
 
         // Tabla de conversaciones (opcional, para historial)
         await pool.query(`
             CREATE TABLE IF NOT EXISTS chat_conversations (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 user_message TEXT NOT NULL,
                 ai_response TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_created_at (created_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        await pool.query(`
+            CREATE INDEX IF NOT EXISTS idx_chat_conversations_created_at
+            ON chat_conversations (created_at);
         `);
 
         console.log('✅ Tablas creadas/verificadas correctamente');
@@ -116,7 +126,7 @@ async function createTables() {
 // Función para obtener el contexto del conocimiento
 async function getKnowledgeContext() {
     try {
-        const [rows] = await pool.query(`
+        const { rows } = await pool.query(`
             SELECT title, content, category 
             FROM ai_knowledge 
             ORDER BY category, created_at DESC
@@ -320,7 +330,7 @@ app.post('/api/chat', async (req, res) => {
         // Guardar conversación en la base de datos (opcional)
         try {
             await pool.query(
-                'INSERT INTO chat_conversations (user_message, ai_response) VALUES (?, ?)',
+                'INSERT INTO chat_conversations (user_message, ai_response) VALUES ($1, $2)',
                 [message, aiResponse]
             );
         } catch (dbError) {
@@ -387,7 +397,7 @@ app.post('/api/chat', async (req, res) => {
 // Ruta para obtener comentarios
 app.get('/api/comments', async (req, res) => {
     try {
-        const [rows] = await pool.query(`
+        const { rows } = await pool.query(`
             SELECT id, name, email, text, created_at 
             FROM comments 
             ORDER BY created_at DESC 
@@ -426,7 +436,7 @@ app.post('/api/comments', async (req, res) => {
         }
 
         await pool.query(
-            'INSERT INTO comments (name, email, text) VALUES (?, ?, ?)',
+            'INSERT INTO comments (name, email, text) VALUES ($1, $2, $3)',
             [name, email, text]
         );
 
@@ -455,7 +465,7 @@ app.post('/api/knowledge', async (req, res) => {
         const validCategory = category || 'general';
         
         await pool.query(
-            'INSERT INTO ai_knowledge (title, content, category) VALUES (?, ?, ?)',
+            'INSERT INTO ai_knowledge (title, content, category) VALUES ($1, $2, $3)',
             [title, content, validCategory]
         );
 
@@ -472,7 +482,7 @@ app.post('/api/knowledge', async (req, res) => {
 // Ruta para obtener conocimiento
 app.get('/api/knowledge', async (req, res) => {
     try {
-        const [rows] = await pool.query(`
+        const { rows } = await pool.query(`
             SELECT id, title, content, category, created_at, updated_at 
             FROM ai_knowledge 
             ORDER BY category, created_at DESC

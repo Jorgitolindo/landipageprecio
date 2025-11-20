@@ -1,5 +1,11 @@
 // Configuración
 const API_URL = 'http://localhost:3000/api';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function isValidEmail(email) {
+    if (!email) return false;
+    return EMAIL_REGEX.test(email.trim());
+}
+
 let chatOpen = false;
 
 // Inicialización
@@ -220,9 +226,20 @@ async function syncPendingComments() {
 
     const synced = [];
     const failed = [];
+    const discarded = [];
 
     for (const comment of pendingComments) {
+        if (!isValidEmail(comment.email)) {
+            discarded.push(comment.id);
+            removeCommentFromCache(comment.id);
+            console.warn('⚠️ Comentario descartado por email inválido:', comment);
+            continue;
+        }
+
         try {
+            if (!isValidEmail(comment.email)) {
+                throw new Error('Email inválido');
+            }
             const response = await fetch(`${API_URL}/comments`, {
                 method: 'POST',
                 headers: {
@@ -258,6 +275,10 @@ async function syncPendingComments() {
 
     if (failed.length > 0) {
         console.log(`⚠️ ${failed.length} comentario(s) no se pudieron sincronizar`);
+    }
+
+    if (discarded.length > 0) {
+        showNotification(`${discarded.length} comentario(s) descartado(s) por email inválido.`, 'error');
     }
 
     updatePendingCommentsIndicator();
@@ -327,6 +348,11 @@ function initializeComments() {
 
         if (!name || !email || !text) {
             alert('Por favor completa todos los campos');
+            return;
+        }
+
+        if (!isValidEmail(email)) {
+            alert('Por favor ingresa un email válido');
             return;
         }
 
